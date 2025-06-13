@@ -30,7 +30,9 @@ const isLogin = async (req, res, next) => {
 
 route.post("/deposit", isLogin, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const amount = Number(req.body.amount);
+    console.log(typeof amount);
+
     const user = req.user.userId;
     console.log(user);
 
@@ -70,7 +72,7 @@ route.post("/deposit", isLogin, async (req, res) => {
 
 route.post("/withdraw", isLogin, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const amount = Number(req.body.amount);
     const user = req.user.userId;
     console.log(user);
 
@@ -83,8 +85,13 @@ route.post("/withdraw", isLogin, async (req, res) => {
         message: "Maximum  withdraw you can do is 1,000,000",
       });
     }
+
     const prevAmount = await userModel.findOne({ _id: user });
+    if (amount > prevAmount.balance) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
     const newAmount = prevAmount.balance - amount;
+
     const updatedBalance = await userModel.findOneAndUpdate(
       { _id: user },
       {
@@ -123,4 +130,40 @@ route.get("/allTransaction", isLogin, async (req, res) => {
   }
 });
 
+route.get("/userProfile", isLogin, async (req, res) => {
+  try {
+    const user = req.user.userId;
+    const userProfile = await userModel.findOne({ _id: user });
+    return res.status(200).json({ data: userProfile });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+});
+
+route.get("/allUsers", isLogin, async (req, res) => {
+  try {
+    const allUser = await userModel.find();
+    return res.status(200).json({ data: allUser });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+});
+
+route.get("/userTransactions/:userId", isLogin, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const userTransactions = await accountModel.find({ user: userId });
+    return res.status(200).json({ data: userTransactions });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: err.message });
+  }
+});
 module.exports = route;

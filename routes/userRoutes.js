@@ -56,10 +56,36 @@ route.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid Password" });
     }
+    if (user.role == "banker") {
+      return res.status(400).json({ msg: "Banker cannot login from here" });
+    }
     const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
       expiresIn: "2h",
     });
     res.json({ message: "User Login Successfull", token });
+  } catch (error) {
+    res.json({ message: "Internal Server Error", error: error.message });
+  }
+});
+
+route.post("/bankerLogin", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ msg: "Banker Not Exist" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid Password" });
+    }
+    if (user.role == "user") {
+      return res.status(400).json({ msg: "user cannot login from here" });
+    }
+    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY, {
+      expiresIn: "2h",
+    });
+    res.json({ message: "Banker Login Successfull", token });
   } catch (error) {
     res.json({ message: "Internal Server Error", error: error.message });
   }
